@@ -23,10 +23,16 @@ export class GeminiProvider implements AIProviderClient {
   }
 
   private body(req: ProviderRequest) {
-    const contents = [
-      { role: 'user', parts: [{ text: req.system }] },
-      ...req.messages,
-    ];
+    const contents: { role: 'user' | 'model'; parts: Array<{ text: string }> }[] = [];
+    if (req.system) {
+      contents.push({ role: 'user', parts: [{ text: req.system }] });
+    }
+    for (const m of req.messages) {
+      contents.push({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      });
+    }
     return JSON.stringify({
       contents,
       generationConfig: {

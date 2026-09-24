@@ -49,7 +49,7 @@ export const config = {
     },
     gemini: {
       key: process.env.GEMINI_API_KEY ?? '',
-      model: process.env.GEMINI_MODEL ?? 'gemini-2.0-flash',
+      model: process.env.GEMINI_MODEL ?? 'gemini-3.6-flash',
     },
     anthropic: {
       key: process.env.ANTHROPIC_API_KEY ?? '',

@@ -292,7 +292,7 @@ async function seedAiProviders() {
     {
       code: 'google_gemini',
       label: 'Google Gemini',
-      model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
       enabled: Boolean(process.env.GEMINI_API_KEY),
       isDefault: false,
       priority: 30,
