@@ -68,7 +68,7 @@ export type AiMode =
   | 'document_tutor'
   | 'engineering_tutor'
 
-export type AiProviderId = 'lambert_auto' | 'openai' | 'microsoft' | 'google_gemini' | 'anthropic_claude'
+export type AiProviderId = 'lambert_auto' | 'openai' | 'microsoft' | 'google_gemini' | 'anthropic_claude' | 'openrouter'
 
 export interface AiProvider {
   id: AiProviderId

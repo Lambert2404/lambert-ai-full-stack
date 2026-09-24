@@ -11,7 +11,7 @@ import { MessageBubble } from './MessageBubble'
 import { Icon, Logo } from '@/components/layout/Logo'
 import { useToast } from '@/contexts/ToastContext'
 
-const availableProviders: AiProviderId[] = ['lambert_auto', 'openai', 'microsoft', 'google_gemini', 'anthropic_claude']
+const availableProviders: AiProviderId[] = ['lambert_auto', 'openai', 'microsoft', 'google_gemini', 'anthropic_claude', 'openrouter']
 
 export function TutorPage() {
   const { conversationId } = useParams<{ conversationId?: string }>()

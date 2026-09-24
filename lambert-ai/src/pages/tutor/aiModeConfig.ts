@@ -18,4 +18,5 @@ export const aiProviderLabels: Record<AiProviderId, string> = {
   microsoft: 'Microsoft',
   google_gemini: 'Google Gemini',
   anthropic_claude: 'Anthropic Claude',
+  openrouter: 'OpenRouter',
 }
