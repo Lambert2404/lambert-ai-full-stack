@@ -55,6 +55,11 @@ export const config = {
       key: process.env.ANTHROPIC_API_KEY ?? '',
       model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-5-20250929',
     },
+    openrouter: {
+      key: process.env.OPENROUTER_API_KEY ?? '',
+      model: process.env.OPENROUTER_MODEL ?? 'openrouter/auto',
+      baseUrl: process.env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1',
+    },
   },
   voice: {
     transcribeUrl: process.env.VOICE_TRANSCRIBE_URL ?? '',
@@ -66,7 +71,7 @@ export const config = {
 
 export type AppConfig = typeof config;
 
-export function providerHasKey(code: 'openai' | 'microsoft' | 'google_gemini' | 'anthropic_claude'): boolean {
+export function providerHasKey(code: 'openai' | 'microsoft' | 'google_gemini' | 'anthropic_claude' | 'openrouter'): boolean {
   switch (code) {
     case 'openai':
       return config.ai.openai.key.length > 0;
@@ -76,5 +81,7 @@ export function providerHasKey(code: 'openai' | 'microsoft' | 'google_gemini' | 
       return config.ai.gemini.key.length > 0;
     case 'anthropic_claude':
       return config.ai.anthropic.key.length > 0;
+    case 'openrouter':
+      return config.ai.openrouter.key.length > 0;
   }
 }

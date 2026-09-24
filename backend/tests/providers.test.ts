@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { loadProviderDefs, invalidateProviderCache } from '../src/providers/registry.js';
 import { AiUnavailableError, UnavailableError } from '../src/lib/errors.js';
 
-const CANONICAL = new Set(['openai', 'microsoft', 'google_gemini', 'anthropic_claude']);
+const CANONICAL = new Set(['openai', 'microsoft', 'google_gemini', 'anthropic_claude', 'openrouter']);
 
-test('provider registry exposes the four canonical providers', async () => {
+test('provider registry exposes the canonical providers', async () => {
   const defs = await loadProviderDefs();
-  assert.equal(defs.length, 4);
+  assert.equal(defs.length, CANONICAL.size);
   for (const d of defs) {
     assert.ok(CANONICAL.has(d.code), `unexpected provider code ${d.code}`);
     assert.ok(typeof d.label === 'string' && d.label.length > 0);

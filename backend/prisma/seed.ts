@@ -305,6 +305,14 @@ async function seedAiProviders() {
       isDefault: false,
       priority: 40,
     },
+    {
+      code: 'openrouter',
+      label: 'OpenRouter',
+      model: process.env.OPENROUTER_MODEL || 'openrouter/auto',
+      enabled: Boolean(process.env.OPENROUTER_API_KEY),
+      isDefault: false,
+      priority: 50,
+    },
   ];
 
   for (const p of providers) {

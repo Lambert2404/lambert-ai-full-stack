@@ -33,6 +33,8 @@ function defaultModelFor(code: ProviderCode): string {
       return config.ai.gemini.model;
     case 'anthropic_claude':
       return config.ai.anthropic.model;
+    case 'openrouter':
+      return config.ai.openrouter.model;
   }
 }
 
@@ -46,6 +48,8 @@ function envHasCapability(code: string): boolean {
       return config.ai.gemini.key.length > 0;
     case 'anthropic_claude':
       return config.ai.anthropic.key.length > 0;
+    case 'openrouter':
+      return config.ai.openrouter.key.length > 0;
     default:
       return false;
   }
@@ -65,7 +69,7 @@ export async function loadProviderDefs(force = false): Promise<ProviderDefinitio
 
   const byCode = new Map(rows.map((r) => [r.code, r]));
 
-  cachedDefs = (['openai', 'microsoft', 'google_gemini', 'anthropic_claude'] as ProviderCode[]).map((code) => {
+  cachedDefs = (['openai', 'microsoft', 'google_gemini', 'anthropic_claude', 'openrouter'] as ProviderCode[]).map((code) => {
     const row = byCode.get(code);
     const dbEnabled = row?.enabled;
     const caps = envHasCapability(code);
@@ -97,6 +101,8 @@ function defaultLabel(code: ProviderCode): string {
       return 'Google Gemini';
     case 'anthropic_claude':
       return 'Anthropic Claude';
+    case 'openrouter':
+      return 'OpenRouter';
   }
 }
 
@@ -110,6 +116,8 @@ function defaultPriority(code: ProviderCode): number {
       return 30;
     case 'anthropic_claude':
       return 40;
+    case 'openrouter':
+      return 50;
   }
 }
 

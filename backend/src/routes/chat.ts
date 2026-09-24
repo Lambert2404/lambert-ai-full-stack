@@ -17,7 +17,7 @@ import { truncate } from '../lib/util.js';
 import type { AiModeId } from '../lib/aiModes.js';
 
 const VALID_MODES = ['tutor', 'exam', 'homework_helper', 'quiz_me', 'explain_simply', 'deep_learning', 'revision', 'document_tutor', 'engineering_tutor'];
-const VALID_PROVIDERS = ['lambert_auto', 'openai', 'microsoft', 'google_gemini', 'anthropic_claude'];
+const VALID_PROVIDERS = ['lambert_auto', 'openai', 'microsoft', 'google_gemini', 'anthropic_claude', 'openrouter'];
 
 const createConvSchema = z.object({
   mode: z.string().refine((m) => VALID_MODES.includes(m)).default('tutor'),

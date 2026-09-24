@@ -9,6 +9,7 @@ import { OpenAIProvider } from './openai.js';
 import { MicrosoftAIProvider } from './microsoft.js';
 import { GeminiProvider } from './gemini.js';
 import { AnthropicProvider } from './anthropic.js';
+import { OpenRouterProvider } from './openrouter.js';
 
 export { invalidateProviderCache };
 
@@ -35,6 +36,7 @@ clients.set('openai', new OpenAIProvider() as any);
 clients.set('microsoft', new MicrosoftAIProvider() as any);
 clients.set('google_gemini', new GeminiProvider() as any);
 clients.set('anthropic_claude', new AnthropicProvider() as any);
+clients.set('openrouter', new OpenRouterProvider() as any);
 
 function fallbackAllowed(req: RouteRequest): boolean {
   return req.fallback !== false && config.ai.fallbackEnabled;

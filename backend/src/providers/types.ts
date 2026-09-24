@@ -1,6 +1,6 @@
 import type { AiTask, AiModeId } from '../lib/aiModes.js';
 
-export type ProviderCode = 'openai' | 'microsoft' | 'google_gemini' | 'anthropic_claude';
+export type ProviderCode = 'openai' | 'microsoft' | 'google_gemini' | 'anthropic_claude' | 'openrouter';
 
 export type AiProviderId = 'lambert_auto' | ProviderCode;
 
