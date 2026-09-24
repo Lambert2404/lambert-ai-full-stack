@@ -1,0 +1,681 @@
+// ============================================================================
+// LAMBERT AI - Prisma schema
+// ----------------------------------------------------------------------------
+// Default engine is SQLite so the backend can be run and tested anywhere.
+// For PostgreSQL production: change `provider` to "postgresql" and set
+// DATABASE_URL accordingly (see .env.example). All models use portable
+// scalar types so no other code changes are required.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identity & access
+// ---------------------------------------------------------------------------
+
+enum Role {
+  student
+  teacher
+  admin
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         Role      @default(student)
+  avatarUrl    String?
+  emailVerified Boolean  @default(false)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  profile             Profile?
+  refreshTokens       RefreshToken[]
+  conversations       Conversation[]
+  studyMaterials      StudyMaterial[]
+  documents           Document[]
+  pastPapers          PastPaper[]
+  quizzes             Quiz[]
+  quizAttempts        QuizAttempt[]
+  studyPlans          StudyPlan[]
+  studyActivities     StudyActivity[]
+  recommendations     LearningRecommendation[]
+  notifications       Notification[]
+  notificationPrefs   NotificationPreference[]
+  bookmarks           Bookmark[]
+  feedback            Feedback[]
+  auditLogs           AuditLog[]
+  aiUsage             AiUsage[]
+  userSubjects        UserSubject[]
+  passwordResets      PasswordReset[]
+  topicProgress       TopicProgress[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model Profile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  educationLevel    String?
+  institution       String?
+  program           String?
+  preferredLanguage String   @default("en")
+  learningGoals     String?
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model UserSubject {
+  id        String   @id @default(cuid())
+  userId    String
+  subjectId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subjectId])
+  @@map("user_subjects")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  ip        String?
+  userAgent String?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_resets")
+}
+
+// ---------------------------------------------------------------------------
+// Content structure
+// ---------------------------------------------------------------------------
+
+model Subject {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  iconKey     String   @default("book")
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  topics          Topic[]
+  userSubjects    UserSubject[]
+  studyMaterials  StudyMaterial[]
+  pastPapers      PastPaper[]
+  pastPaperQuestions PastPaperQuestion[]
+  quizzes         Quiz[]
+  studySessions   StudySession[]
+  progress        TopicProgress[]
+  recommendations LearningRecommendation[]
+
+  @@map("subjects")
+}
+
+model Topic {
+  id            String   @id @default(cuid())
+  subjectId     String
+  name          String
+  description   String?
+  difficulty    String   @default("beginner") // beginner | intermediate | advanced
+  order         Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  subject       Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  materialMeta  Json? // optional data structures: formulas, examples
+
+  studyMaterials StudyMaterial[]
+  questions      QuizQuestion[]
+  quizzes        Quiz[]
+  pastPaperQuestions PastPaperQuestion[]
+  studySessions  StudySession[]
+  progress       TopicProgress[]
+  recommendations LearningRecommendation[]
+
+  @@unique([subjectId, name])
+  @@index([subjectId])
+  @@map("topics")
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  subjectId   String?
+  description String?
+  metadata    Json?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([subjectId])
+  @@map("courses")
+}
+
+// ---------------------------------------------------------------------------
+// Materials & documents
+// ---------------------------------------------------------------------------
+
+enum MaterialStatus {
+  uploading
+  processing
+  indexing
+  ready
+  failed
+}
+
+model StudyMaterial {
+  id          String         @id @default(cuid())
+  userId      String
+  subjectId   String?
+  topicId     String?
+  name        String
+  fileType    String // pdf | docx | txt
+  mimeType    String?
+  sizeBytes   Int
+  pages       Int?
+  status      MaterialStatus @default(uploading)
+  storageKey  String // unique private storage identifier
+  errorMessage String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user     User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject  Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  topic    Topic?    @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  document Document?
+
+  @@index([userId])
+  @@index([subjectId])
+  @@map("study_materials")
+}
+
+model Document {
+  id          String         @id @default(cuid())
+  userId      String
+  materialId  String         @unique
+  title       String
+  status      MaterialStatus @default(processing)
+  errorMessage String?
+  chunkCount  Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  material  StudyMaterial   @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  chunks    DocumentChunk[]
+
+  @@index([userId])
+  @@map("documents")
+}
+
+model DocumentChunk {
+  id         String @id @default(cuid())
+  documentId String
+  index      Int
+  content    String
+  embedding  Json   // number[] produced by the local embedding index
+  tokenCount Int    @default(0)
+  metadata   Json?  // page numbers, section title, etc.
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, index])
+  @@index([documentId])
+  @@map("document_chunks")
+}
+
+model PastPaper {
+  id          String         @id @default(cuid())
+  userId      String
+  subjectId   String
+  name        String
+  year        Int
+  status      MaterialStatus @default(processing)
+  errorMessage String?
+  questionCount Int          @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   Subject            @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  questions PastPaperQuestion[]
+
+  @@unique([subjectId, year, userId])
+  @@index([userId])
+  @@map("past_papers")
+}
+
+model PastPaperQuestion {
+  id           String   @id @default(cuid())
+  pastPaperId  String
+  subjectId    String
+  topicId      String?
+  text         String
+  year         Int
+  difficulty   String @default("medium") // easy | medium | hard
+  questionType String @default("short_answer") // mcq | short_answer | essay | calculation
+  options      Json?
+  answer       Json?
+  order        Int    @default(0)
+
+  pastPaper PastPaper @relation(fields: [pastPaperId], references: [id], onDelete: Cascade)
+  subject   Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topic     Topic?    @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  @@index([pastPaperId])
+  @@index([topicId])
+  @@map("past_paper_questions")
+}
+
+// ---------------------------------------------------------------------------
+// Conversations & messages
+// ---------------------------------------------------------------------------
+
+model Conversation {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String   @default("New conversation")
+  mode        String   @default("tutor") // tutor | exam | homework_helper | quiz_me | ...
+  subjectId   String?
+  bookmarked  Boolean  @default(false)
+  providerId  String?
+  language    String   @default("en")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@index([userId, updatedAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String // user | assistant | system
+  content        String
+  provider       String?
+  model          String?
+  task           String?
+  sources        Json? // array of {documentId, documentName, pageNumber?, snippet}
+  error          String?
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+// ---------------------------------------------------------------------------
+// Quizzes
+// ---------------------------------------------------------------------------
+
+model Quiz {
+  id             String   @id @default(cuid())
+  title          String
+  subjectId      String
+  topicId        String?
+  difficulty     String   @default("medium") // easy | medium | hard
+  language       String   @default("en") // en | sw
+  timed          Boolean  @default(false)
+  durationMinutes Int?
+  questionCount  Int      @default(0)
+  generatedBy    String   @default("ai") // ai | rule_based
+  createdBy      String?
+  isPublic       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  subject   Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topic     Topic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  creator   User?          @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@index([subjectId])
+  @@index([createdBy])
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id            String  @id @default(cuid())
+  quizId        String
+  prompt        String
+  type          String // mcq | true_false | short_answer | calculation | problem_solving
+  options       Json?   // [{ id, text }]
+  correctOptionId String?
+  correctAnswer Json?   // for short answer / calculation: { text: "..." } or { isTrue: true }
+  explanation   String?
+  difficulty    String  @default("medium")
+  topicId       String?
+  order         Int     @default(0)
+
+  quiz      Quiz            @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  topic     Topic?          @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  answers   QuizAnswer[]
+
+  @@index([quizId])
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id           String    @id @default(cuid())
+  quizId       String
+  userId       String
+  startedAt    DateTime  @default(now())
+  submittedAt  DateTime?
+  scorePercent Float?
+  correctCount Int?
+  incorrectCount Int?
+  timeSpentSeconds Int?
+  answers      Json?     // snapshot: [{ questionId, selectedOptionId?, textAnswer?, isCorrect? }]
+  topicBreakdown Json?   // [{ topicId, topicName, correctPercent }]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  quiz      Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answerDetails QuizAnswer[]
+
+  @@index([userId, startedAt])
+  @@index([quizId])
+  @@map("quiz_attempts")
+}
+
+model QuizAnswer {
+  id               String   @id @default(cuid())
+  attemptId        String
+  questionId       String
+  selectedOptionId String?
+  textAnswer       String?
+  isCorrect        Boolean?
+  createdAt        DateTime @default(now())
+
+  attempt QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId])
+  @@map("quiz_answers")
+}
+
+// ---------------------------------------------------------------------------
+// Study planning, activity & progress
+// ---------------------------------------------------------------------------
+
+model StudyPlan {
+  id                 String   @id @default(cuid())
+  userId             String
+  title              String
+  examDate           DateTime?
+  createdBy          String   @default("user") // ai | user
+  weeklyHoursTarget  Int?
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions StudySession[]
+
+  @@index([userId, isActive])
+  @@map("study_plans")
+}
+
+model StudySession {
+  id             String   @id @default(cuid())
+  planId         String
+  title          String
+  subjectId      String?
+  topicId        String?
+  date           DateTime
+  startTime      String? // "HH:mm"
+  durationMinutes Int     @default(45)
+  status         String   @default("pending") // pending | completed | skipped
+  completedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  plan    StudyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  subject Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  topic   Topic?    @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  @@index([planId])
+  @@map("study_sessions")
+}
+
+model StudyActivity {
+  id          String   @id @default(cuid())
+  userId      String
+  subjectId   String?
+  topicId     String?
+  type        String // study | quiz | document | past_paper
+  minutes     Int      @default(0)
+  quizAttemptId String?
+  happenedAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, happenedAt])
+  @@map("study_activities")
+}
+
+model TopicProgress {
+  id             String   @id @default(cuid())
+  userId         String
+  subjectId      String
+  topicId        String
+  masteryPercent Int      @default(0)
+  attempts       Int      @default(0)
+  lastQuizScore  Float?
+  isCompleted    Boolean  @default(false)
+  completedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topic   Topic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId])
+  @@index([userId])
+  @@map("topic_progress")
+}
+
+model LearningRecommendation {
+  id              String   @id @default(cuid())
+  userId          String
+  title           String
+  reason          String
+  actionType      String @default("review") // review | practice | quiz | read
+  subjectId       String
+  topicId         String?
+  difficulty      String @default("medium")
+  estimatedMinutes Int    @default(30)
+  dismissed       Boolean @default(false)
+  createdAt       DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topic   Topic?  @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  @@index([userId, dismissed])
+  @@map("learning_recommendations")
+}
+
+// ---------------------------------------------------------------------------
+// Notifications & bookmarks
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String // study_reminder | quiz_result | study_plan | new_material | achievement | system
+  title     String
+  body      String
+  data      Json?
+  read      Boolean  @default(false)
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, archived, createdAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id     String @id @default(cuid())
+  userId String
+  type   String // study_reminder | quiz_result | study_plan | new_material | achievement | system
+  email  Boolean @default(true)
+  push   Boolean @default(true)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@map("notification_preferences")
+}
+
+model Bookmark {
+  id         String   @id @default(cuid())
+  userId     String
+  targetType String // material | topic | conversation | quiz
+  targetId   String
+  note       String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId])
+  @@index([userId])
+  @@map("bookmarks")
+}
+
+// ---------------------------------------------------------------------------
+// AI provider configuration & usage
+// ---------------------------------------------------------------------------
+
+model AiProvider {
+  id        String   @id @default(cuid())
+  code      String   @unique // openai | microsoft | google_gemini | anthropic_claude
+  label     String
+  enabled   Boolean  @default(false)
+  isDefault Boolean  @default(false)
+  isFallback Boolean @default(true)
+  priority  Int      @default(0)
+  config    Json?    // safe, non-secret configuration only (model, endpoint)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  models AiModel[]
+
+  @@map("ai_providers")
+}
+
+model AiModel {
+  id               String   @id @default(cuid())
+  providerId       String
+  modelName        String
+  status           String   @default("offline") // online | degraded | offline
+  isDefault        Boolean  @default(false)
+  isFallback       Boolean  @default(false)
+  avgLatencyMs     Int?
+  errorRatePercent Float?
+  requestsToday    Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  provider AiProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  usage    AiUsage[]
+
+  @@map("ai_models")
+}
+
+model AiUsage {
+  id            String   @id @default(cuid())
+  userId        String?
+  providerCode  String
+  modelId       String?
+  taskType      String   @default("chat")
+  requestCount  Int      @default(1)
+  inputTokens   Int?
+  outputTokens  Int?
+  estimatedCost Float?
+  latencyMs     Int?
+  status        String   @default("success") // success | error
+  errorCategory String?
+  createdAt     DateTime @default(now())
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  model         AiModel? @relation(fields: [modelId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("ai_usage")
+}
+
+// ---------------------------------------------------------------------------
+// Feedback, audit, security
+// ---------------------------------------------------------------------------
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  messageId String?
+  category  String   @default("general") // general | bug | suggestion | content
+  rating    Int?
+  comment   String
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([category])
+  @@map("feedback")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  role       String?
+  action     String
+  entityType String?
+  entityId   String?
+  ip         String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([action])
+  @@map("audit_logs")
+}
