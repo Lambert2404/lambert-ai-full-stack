@@ -1,0 +1,42 @@
+# Render Blueprint for the LAMBERT AI backend (Fastify + Prisma).
+# Render reads this file on dashboard import → "New + Blueprint" with this repo URL.
+# Secrets are marked sync:false — they are set only in the Render dashboard, never committed.
+services:
+  - type: web
+    name: lambert-ai-backend
+    runtime: node
+    rootDir: ./backend
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npx prisma migrate deploy && npm run db:seed && node dist/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_URL
+        value: file:./dev.db
+        # SQLite rides the deploy's filesystem (resets on redeploy, re-seeded at boot).
+        # Upgrade path: Render Postgres → change schema provider to 'postgresql' →
+        # rebaseline migrations → point DATABASE_URL at the created instance.
+      - key: CORS_ORIGINS
+        value: http://localhost:5173,http://localhost:3000,https://lambert-1cdviwq5m-lpm10.vercel.app
+      - key: LOG_LEVEL
+        value: info
+      # ---- secrets (dashboard-only, never committed, sync:false prompts you to set them) ----
+      - key: JWT_SECRET
+        sync: false
+      - key: REFRESH_TOKEN_SECRET
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      # ---- AI provider keys (each blank disables that provider; set what you use) ----
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
