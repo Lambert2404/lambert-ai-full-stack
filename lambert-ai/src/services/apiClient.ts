@@ -7,13 +7,19 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? '/api'
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 30_000,
+  timeout: 120_000,
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// Attach the auth token (if present) to every request.
+// Render's free tier spins the backend down after ~15 minutes of inactivity,
+// and waking it can take well over 30 seconds. Treat the first request as a
+// warm-up: give it one retry before surfacing the error to the user.
+interface RetriedConfig {
+  lambertRetried?: boolean
+}
+
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('lambert_access_token')
   if (token) {
@@ -22,15 +28,23 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
-// Normalize errors and handle expired sessions in one place.
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<{ message?: string; code?: string }>) => {
+  async (error: AxiosError<{ message?: string; code?: string }>) => {
     const status = error.response?.status ?? 0
+    const config = error.config as (typeof error.config & RetriedConfig) | undefined
 
     if (status === 401) {
       localStorage.removeItem('lambert_access_token')
       window.dispatchEvent(new CustomEvent('lambert:session-expired'))
+    }
+
+    // Retry once on network-level failures (no HTTP status): the backend is
+    // likely still waking up from a Render free-tier idle spin-down.
+    if (status === 0 && config && !config.lambertRetried) {
+      config.lambertRetried = true
+      await new Promise((resolve) => setTimeout(resolve, 3_000))
+      return apiClient.request(config)
     }
 
     const normalized: ApiError = {

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import type { User } from '@/types'
 import { authService } from '@/services/authService'
-import { BACKEND_READY } from '@/services/apiClient'
+import { apiClient, BACKEND_READY } from '@/services/apiClient'
 
 interface AuthContextValue {
   user: User | null
@@ -32,6 +32,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then(setUser)
       .catch(() => setUser(null))
       .finally(() => setIsInitializing(false))
+  }, [])
+
+  // Warm the backend up as soon as the app loads: Render's free tier idles
+  // the service after inactivity, and waking it can take 30-60s. Ping /health
+  // early (fire-and-forget) so sign-in isn't the request that pays that cost.
+  useEffect(() => {
+    if (!BACKEND_READY) return
+    apiClient.get('/health').catch(() => {})
   }, [])
 
   useEffect(() => {
