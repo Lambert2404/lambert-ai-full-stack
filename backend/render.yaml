@@ -7,7 +7,7 @@ services:
     runtime: node
     rootDir: ./backend
     plan: free
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npx prisma migrate deploy && npm run db:seed && node dist/server.js
     healthCheckPath: /health
     envVars:
@@ -18,12 +18,10 @@ services:
       - key: HOST
         value: 0.0.0.0
       - key: DATABASE_URL
-        value: file:./dev.db
-        # SQLite rides the deploy's filesystem (resets on redeploy, re-seeded at boot).
-        # Upgrade path: Render Postgres → change schema provider to 'postgresql' →
-        # rebaseline migrations → point DATABASE_URL at the created instance.
+        sync: false
+        # Set in the Render dashboard to the Postgres internal connection string.
       - key: CORS_ORIGINS
-        value: http://localhost:5173,http://localhost:3000,https://lambert-1cdviwq5m-lpm10.vercel.app
+        value: http://localhost:5173,http://localhost:3000,https://lambert-ai.vercel.app
       - key: LOG_LEVEL
         value: info
       # ---- secrets (dashboard-only, never committed, sync:false prompts you to set them) ----

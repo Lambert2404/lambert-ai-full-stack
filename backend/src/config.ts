@@ -24,7 +24,7 @@ export const config = {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
-  databaseUrl: process.env.DATABASE_URL ?? 'file:./dev.db',
+  databaseUrl: process.env.DATABASE_URL ?? 'postgresql://localhost:5432/lambertai',
   jwt: {
     secret: process.env.JWT_SECRET ?? 'insecure-dev-secret',
     accessTtl: process.env.JWT_ACCESS_TTL ?? '15m',

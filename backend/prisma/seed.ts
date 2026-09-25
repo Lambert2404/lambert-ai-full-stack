@@ -357,10 +357,10 @@ async function seedUsers() {
   });
 
   await prisma.user.upsert({
-    where: { email: 'demo@lambertai.com' },
+    where: { email: 'demo@gmail.com' },
     update: { isActive: true },
     create: {
-      email: 'demo@lambertai.com',
+      email: 'demo@gmail.com',
       passwordHash: demoPassword,
       name: 'Demo Student',
       role: Role.student,

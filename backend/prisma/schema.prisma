@@ -1,10 +1,10 @@
 // ============================================================================
 // LAMBERT AI - Prisma schema
 // ----------------------------------------------------------------------------
-// Default engine is SQLite so the backend can be run and tested anywhere.
-// For PostgreSQL production: change `provider` to "postgresql" and set
-// DATABASE_URL accordingly (see .env.example). All models use portable
-// scalar types so no other code changes are required.
+// Production runs on Render Postgres (provider = "postgresql").
+// For local development without Postgres, switch `provider` back to "sqlite"
+// and set DATABASE_URL="file:./dev.db". All models use portable scalar types
+// so no other code changes are required.
 // ============================================================================
 
 generator client {
@@ -12,7 +12,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
